@@ -1,0 +1,10 @@
+name: energy-data-platform
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - openjdk=17
+  - pyspark>=3.5,<4.0
+  - pyyaml>=6.0,<7.0
+  - pyodbc>=5.0,<6.0
+  - pytest>=8.0,<9.0

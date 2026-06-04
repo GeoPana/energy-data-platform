@@ -13,6 +13,7 @@ Desktop.ini
 .env.*
 !.env.example
 *.local
+config/local_config.yaml
 
 # Python environments and caches
 __pycache__/
@@ -49,9 +50,19 @@ temp/
 # Local data and generated lakehouse artifacts
 data/
 lakehouse/
-bronze/
-silver/
-gold/
+data_lake/bronze/**
+data_lake/silver/**
+data_lake/gold/**
+!data_lake/
+!data_lake/bronze/
+!data_lake/bronze/**/
+!data_lake/bronze/**/.gitkeep
+!data_lake/silver/
+!data_lake/silver/**/
+!data_lake/silver/**/.gitkeep
+!data_lake/gold/
+!data_lake/gold/**/
+!data_lake/gold/**/.gitkeep
 *.parquet
 *.avro
 *.orc

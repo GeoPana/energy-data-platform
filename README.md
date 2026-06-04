@@ -2,91 +2,75 @@
 
 This repository is a portfolio Data Engineering project that models an Azure-style energy analytics platform using free local tools.
 
-Phase 1 creates the SQL Server warehouse foundation only. It defines the local serving layer that later lakehouse, orchestration, streaming, API, and reporting phases can load and consume.
+The project is built in phases. Phase 1 created the SQL Server warehouse foundation. Phase 2 adds a local batch lakehouse pipeline that generates source-style data, transforms it through bronze, silver, and gold layers with PySpark, and loads curated outputs into SQL Server.
 
-## Phase 1 Scope
+## Current Scope
 
-Implemented in this phase:
+Implemented:
 
-- SQL Server database bootstrap for `EnergyWarehouse`.
-- Separate schemas for raw-like landing, dimensional warehouse, and monitoring data:
-  - `staging`
-  - `dw`
-  - `monitoring`
-- Star-schema warehouse tables for dates, regions, customers, meters, tariffs, consumption facts, meter readings, and anomaly events.
-- Staging tables for batch files, event payloads, and rejected records.
-- Monitoring tables for pipeline runs and data-quality checks.
-- Coherent London-style sample data.
-- Interview-relevant analytics queries.
-- Data-quality investigation queries.
-- Reset script for dropping Phase 1 objects.
-- Documentation explaining the model and design decisions.
+- Phase 1 SQL Server warehouse foundation.
+- Phase 2 local batch lakehouse pipeline.
+- Local data generation for metadata, energy consumption, and weather.
+- Bronze raw-style CSV landing folders.
+- Silver cleaned Parquet outputs and rejected records.
+- Gold curated Parquet outputs.
+- SQL Server loader for curated warehouse tables.
+- Documentation and unit tests for core helper logic.
 
 Intentionally not implemented yet:
 
-- PySpark processing.
 - Airflow orchestration.
 - Streaming ingestion.
+- Azure Event Hubs Emulator.
 - FastAPI services.
 - Power BI reports.
-- Azure Event Hubs Emulator.
 - CI/CD pipelines.
-- Cloud resources or paid Azure services.
+- Cloud resources.
 
 ## Local Tool To Azure Concept Mapping
 
-| Local Phase 1 Asset | Azure-Style Concept |
+| Local Asset | Azure-Style Concept |
 | --- | --- |
 | SQL Server Developer Edition | Azure SQL Database / Synapse serving layer |
-| `staging` schema | Raw or landing zone tables |
-| `dw` schema | Curated warehouse / dimensional serving model |
-| `monitoring` schema | Operational metadata and data-quality observability |
-| SQL seed data | Small local stand-in for curated lakehouse output |
-| Analytics SQL | Warehouse consumption layer for BI and analysis |
-| Data-quality SQL | Validation checks normally run during pipelines |
+| `data_lake/bronze` | ADLS Gen2 bronze/raw zone |
+| `data_lake/silver` | Databricks/Synapse silver cleaned tables |
+| `data_lake/gold` | Curated gold lakehouse tables |
+| PySpark local jobs | Databricks or Synapse Spark jobs |
+| Parquet files | Local stand-in for Delta Lake tables |
+| `monitoring` schema | Operational metadata and quality observability |
 
 ## Repository Structure
 
 ```text
 .
-├── README.md
-├── docs
-│   ├── data_model.md
-│   ├── design_decisions.md
-│   └── phase_1_overview.md
-└── sql
-    ├── 01_create_database.sql
-    ├── 02_create_schemas.sql
-    ├── 03_create_dimensions.sql
-    ├── 04_create_facts.sql
-    ├── 05_seed_sample_data.sql
-    ├── 06_data_quality_checks.sql
-    ├── 07_analytics_queries.sql
-    ├── 08_drop_all.sql
-    └── README.md
+|-- README.md
+|-- .gitignore
+|-- environment.yml
+|-- config
+|   `-- local_config.example.yaml
+|-- data_lake
+|   |-- bronze
+|   |-- silver
+|   `-- gold
+|-- docs
+|-- ingestion
+|-- spark_jobs
+|-- sql
+`-- tests
 ```
 
-## Prerequisites
+## Phase 1: SQL Server Warehouse Foundation
 
-- SQL Server Developer Edition, SQL Server Express, or a local SQL Server container.
-- SQL Server Management Studio, Azure Data Studio, VS Code with the MSSQL extension, or `sqlcmd`.
-- A login with permission to create a local database.
+Phase 1 creates a local SQL Server database named `EnergyWarehouse` with:
 
-No secrets, passwords, or cloud credentials are required by this phase.
+- `staging` schema for raw-like landing tables.
+- `dw` schema for dimensions and facts.
+- `monitoring` schema for pipeline and data-quality metadata.
+- Dimension tables for dates, regions, customers, meters, and tariffs.
+- Fact tables for energy consumption, meter readings, and anomaly events.
+- Seed data, analytics SQL, data-quality SQL, and reset scripts.
 
-## How To Run
-
-Run the scripts in order:
-
-1. `sql/01_create_database.sql`
-2. `sql/02_create_schemas.sql`
-3. `sql/03_create_dimensions.sql`
-4. `sql/04_create_facts.sql`
-5. `sql/05_seed_sample_data.sql`
-6. Optional validation: `sql/06_data_quality_checks.sql`
-7. Optional analytics: `sql/07_analytics_queries.sql`
-
-Example with Windows authentication:
+Run Phase 1 scripts in order:
 
 ```powershell
 sqlcmd -S localhost -E -i sql\01_create_database.sql
@@ -96,50 +80,146 @@ sqlcmd -S localhost -E -i sql\04_create_facts.sql
 sqlcmd -S localhost -E -i sql\05_seed_sample_data.sql
 ```
 
-If you use SQL authentication, replace `-E` with your local authentication options.
+Optional:
 
-The scripts contain `USE EnergyWarehouse;` statements where needed, so they can also be opened and run directly in SQL Server Management Studio, Azure Data Studio, or the VS Code MSSQL extension.
+```powershell
+sqlcmd -S localhost -E -i sql\06_data_quality_checks.sql
+sqlcmd -S localhost -E -i sql\07_analytics_queries.sql
+```
 
-## Expected Outputs
+## Phase 2: Batch Lakehouse Pipeline
 
-After running the setup and seed scripts, the database should contain:
+Phase 2 simulates this batch flow:
 
-- 5 London-style regions.
-- 10 customers.
-- 10 meters.
-- 3 tariffs.
-- 14 date dimension rows.
-- 140 batch consumption fact rows.
-- 60 smart-meter reading fact rows.
-- 3 anomaly events.
-- Sample pipeline run metadata.
-- Sample data-quality check metadata.
-- Sample staging and rejected-record rows.
+```text
+Python data generation
+    -> local bronze data lake
+    -> PySpark bronze-to-silver validation
+    -> PySpark silver-to-gold transformation
+    -> curated gold outputs
+    -> SQL Server warehouse load
+```
 
-The analytics script returns regional consumption, customer segment usage, tariff cost, anomaly, freshness, and pipeline monitoring examples.
+Phase 2 uses Parquet for silver and gold. Delta Lake can be enabled in a later Databricks-style phase, but Parquet keeps the local project reliable.
 
-The data-quality script returns investigation result sets for null keys, negative usage, duplicates, missing dimension references, inactive customer assignments, future timestamps, rejected records, and failed pipeline or quality checks.
+## Setup
+
+Create and activate the local Conda environment:
+
+```powershell
+conda env create -f environment.yml
+conda activate energy-data-platform
+```
+
+The environment includes `openjdk` for local PySpark. If Spark still cannot find Java in your shell, restart the terminal after activation.
+
+The SQL Server load step also requires Microsoft ODBC Driver 18 for SQL Server installed on the machine. `pyodbc` is included in the Conda environment, but the native SQL Server ODBC driver is installed separately.
+
+If the environment already exists and you want to update it:
+
+```powershell
+conda env update -f environment.yml --prune
+conda activate energy-data-platform
+```
+
+Copy the config example if you want local overrides:
+
+```powershell
+copy config\local_config.example.yaml config\local_config.yaml
+```
+
+Then set:
+
+```powershell
+$env:ENERGY_PLATFORM_CONFIG = "config\local_config.yaml"
+```
+
+Do not commit real usernames, passwords, or local secrets.
+
+## Run Phase 2
+
+Generate bronze source data:
+
+```powershell
+python ingestion/generate_metadata.py
+python ingestion/generate_batch_data.py
+python ingestion/generate_weather_data.py
+```
+
+Transform bronze to silver:
+
+```powershell
+python spark_jobs/bronze_to_silver_batch.py
+```
+
+Transform silver to gold:
+
+```powershell
+python spark_jobs/silver_to_gold_batch.py
+```
+
+Load curated data to SQL Server:
+
+```powershell
+python spark_jobs/load_gold_to_sql_server.py
+```
+
+The SQL Server load expects the Phase 1 database and tables to already exist.
+
+## Expected Phase 2 Outputs
+
+Bronze:
+
+- `data_lake/bronze/customer_metadata/`
+- `data_lake/bronze/meter_metadata/`
+- `data_lake/bronze/tariff/`
+- `data_lake/bronze/historical_consumption/`
+- `data_lake/bronze/weather/`
+
+Silver:
+
+- `data_lake/silver/clean_consumption/`
+- `data_lake/silver/clean_weather/`
+- `data_lake/silver/clean_customer/`
+- `data_lake/silver/clean_meter/`
+- `data_lake/silver/clean_tariff/`
+- `data_lake/silver/rejected_records/`
+
+Gold:
+
+- `data_lake/gold/daily_region_consumption/`
+- `data_lake/gold/daily_customer_consumption/`
+- `data_lake/gold/monthly_region_consumption/`
+- `data_lake/gold/consumption_weather_features/`
+- `data_lake/gold/customer_usage_summary/`
+
+## Tests
+
+Run the basic unit tests:
+
+```powershell
+python -m pytest
+```
+
+The tests focus on pure Python helper logic and do not require SQL Server.
 
 ## Resetting Phase 1 Objects
 
-To drop all Phase 1 tables and schemas, run:
+To drop Phase 1 SQL Server objects:
 
 ```powershell
 sqlcmd -S localhost -E -i sql\08_drop_all.sql
 ```
 
-The reset script intentionally keeps the `EnergyWarehouse` database itself, but drops Phase 1 objects inside it.
+The reset script keeps the `EnergyWarehouse` database itself.
 
 ## Next Phases
 
 Planned later phases:
 
-- Lakehouse-style bronze, silver, and gold processing with PySpark.
-- Batch orchestration with Airflow.
+- Airflow orchestration for the batch pipeline.
 - Streaming-style smart-meter ingestion.
-- API access patterns with FastAPI.
-- Dashboarding with Power BI.
 - Local Azure Event Hubs Emulator integration.
+- FastAPI access patterns.
+- Power BI dashboarding.
 - Automated checks and CI/CD.
-
-Phase 1 keeps the project grounded: a usable warehouse contract that later ingestion and transformation work can target.
