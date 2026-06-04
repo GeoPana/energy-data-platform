@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SmartMeterEvent",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "event_id",
+    "meter_id",
+    "customer_id",
+    "region_name",
+    "event_timestamp",
+    "kwh",
+    "event_type",
+    "source_system",
+    "producer_timestamp"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "meter_id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "region_name": {
+      "type": "string",
+      "enum": [
+        "North London",
+        "South London",
+        "East London",
+        "West London",
+        "Central London"
+      ]
+    },
+    "event_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "kwh": {
+      "type": "number"
+    },
+    "voltage": {
+      "type": ["number", "null"]
+    },
+    "event_type": {
+      "type": "string",
+      "enum": ["reading", "anomaly", "heartbeat"]
+    },
+    "source_system": {
+      "type": "string"
+    },
+    "producer_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "examples": [
+    {
+      "event_id": "evt_000001",
+      "meter_id": "MTR-LON-042",
+      "customer_id": "CUST-LON-042",
+      "region_name": "East London",
+      "event_timestamp": "2026-06-04T12:05:00Z",
+      "kwh": 0.842,
+      "voltage": 230.4,
+      "event_type": "reading",
+      "source_system": "smart_meter_stream",
+      "producer_timestamp": "2026-06-04T12:05:01Z"
+    }
+  ]
+}

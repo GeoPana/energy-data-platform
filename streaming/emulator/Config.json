@@ -1,0 +1,24 @@
+{
+  "UserConfig": {
+    "NamespaceConfig": [
+      {
+        "Type": "EventHub",
+        "Name": "emulatorNs1",
+        "Entities": [
+          {
+            "Name": "smart-meter-events",
+            "PartitionCount": "2",
+            "ConsumerGroups": [
+              {
+                "Name": "spark-consumer"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "LoggingConfig": {
+      "Type": "File"
+    }
+  }
+}

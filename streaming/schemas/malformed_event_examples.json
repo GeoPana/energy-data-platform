@@ -1,0 +1,46 @@
+[
+  {
+    "description": "Missing meter_id",
+    "event": {
+      "event_id": "evt_bad_missing_meter",
+      "customer_id": "CUST-LON-001",
+      "region_name": "North London",
+      "event_timestamp": "2026-06-04T12:05:00Z",
+      "kwh": 0.842,
+      "voltage": 230.4,
+      "event_type": "reading",
+      "source_system": "smart_meter_stream",
+      "producer_timestamp": "2026-06-04T12:05:01Z"
+    }
+  },
+  {
+    "description": "Negative kWh",
+    "event": {
+      "event_id": "evt_bad_negative_kwh",
+      "meter_id": "MTR-LON-002",
+      "customer_id": "CUST-LON-002",
+      "region_name": "South London",
+      "event_timestamp": "2026-06-04T12:05:00Z",
+      "kwh": -1.25,
+      "voltage": 230.4,
+      "event_type": "reading",
+      "source_system": "smart_meter_stream",
+      "producer_timestamp": "2026-06-04T12:05:01Z"
+    }
+  },
+  {
+    "description": "Invalid timestamp and region",
+    "event": {
+      "event_id": "evt_bad_timestamp_region",
+      "meter_id": "MTR-LON-003",
+      "customer_id": "CUST-LON-003",
+      "region_name": "Unknown London",
+      "event_timestamp": "not-a-timestamp",
+      "kwh": 0.64,
+      "voltage": 231.1,
+      "event_type": "reading",
+      "source_system": "smart_meter_stream",
+      "producer_timestamp": "2026-06-04T12:05:01Z"
+    }
+  }
+]

@@ -4,6 +4,7 @@ This repository is a portfolio Data Engineering project that models an Azure-sty
 
 The project is built in phases. Phase 1 created the SQL Server warehouse foundation. Phase 2 adds a local batch lakehouse pipeline that generates source-style data, transforms it through bronze, silver, and gold layers with PySpark, and loads curated outputs into SQL Server.
 Phase 3 orchestrates that batch pipeline with Apache Airflow.
+Phase 4 adds an Event Hubs-style real-time streaming path with PySpark Structured Streaming.
 
 ## Current Scope
 
@@ -12,18 +13,20 @@ Implemented:
 - Phase 1 SQL Server warehouse foundation.
 - Phase 2 local batch lakehouse pipeline.
 - Phase 3 Apache Airflow batch orchestration.
+- Phase 4 smart-meter streaming pipeline.
 - Local data generation for metadata, energy consumption, and weather.
+- Local smart-meter event generation.
 - Bronze raw-style CSV landing folders.
 - Silver cleaned Parquet outputs and rejected records.
 - Gold curated Parquet outputs.
+- Streaming bronze, silver, gold, checkpoint, anomaly, and metrics outputs.
 - SQL Server loader for curated warehouse tables.
 - Airflow DAG, retries, task dependencies, SQL quality checks, and monitoring hooks.
+- Azure Event Hubs Emulator configuration with file-mode fallback.
 - Documentation and unit tests for core helper logic.
 
 Intentionally not implemented yet:
 
-- Streaming ingestion.
-- Azure Event Hubs Emulator.
 - FastAPI services.
 - Power BI reports.
 - CI/CD pipelines.
@@ -40,6 +43,8 @@ Intentionally not implemented yet:
 | PySpark local jobs | Databricks or Synapse Spark jobs |
 | Airflow DAG | Azure Data Factory pipeline |
 | Airflow task | Azure Data Factory activity |
+| Event Hubs Emulator | Azure Event Hubs |
+| PySpark Structured Streaming | Azure Databricks Structured Streaming |
 | Parquet files | Local stand-in for Delta Lake tables |
 | `monitoring` schema | Operational metadata and quality observability |
 
@@ -52,6 +57,7 @@ Intentionally not implemented yet:
 |-- environment.yml
 |-- docker-compose.yml
 |-- airflow
+|-- checkpoints
 |-- config
 |   |-- airflow_config.example.yaml
 |   `-- local_config.example.yaml
@@ -63,6 +69,7 @@ Intentionally not implemented yet:
 |-- docs
 |-- ingestion
 |-- spark_jobs
+|-- streaming
 |-- sql
 `-- tests
 ```
@@ -233,6 +240,76 @@ SQLSERVER_HOST=host.docker.internal
 
 The DAG writes best-effort pipeline status to `monitoring.pipeline_run` and inserts SQL data-quality results into `monitoring.data_quality_check` when SQL Server is available.
 
+## Phase 4: Real-Time Streaming Pipeline
+
+Phase 4 adds smart-meter streaming:
+
+```text
+Python smart-meter producer
+    -> Azure Event Hubs Emulator or local JSON landing files
+    -> PySpark Structured Streaming
+    -> streaming bronze/silver/gold lakehouse outputs
+    -> optional SQL Server load
+```
+
+Update the Conda environment:
+
+```powershell
+conda env update -f environment.yml --prune
+conda activate energy-data-platform
+```
+
+Run the reliable local file-mode path:
+
+```powershell
+python streaming/producer/smart_meter_producer.py --mode file --events-per-second 5 --duration-seconds 60
+python streaming/consumer/stream_bronze_to_silver_gold.py --source-format json_landing --source-path data_lake/bronze/streaming_events_landing --available-now
+```
+
+Run with a bronze capture step:
+
+```powershell
+python streaming/consumer/stream_eventhub_to_bronze.py --mode file --available-now
+python streaming/consumer/stream_bronze_to_silver_gold.py --available-now
+```
+
+Start the Event Hubs Emulator:
+
+```powershell
+$env:ACCEPT_EULA = "Y"
+$env:CONFIG_PATH = "./Config.json"
+docker compose -f streaming/emulator/docker-compose.eventhubs.yml up
+```
+
+Run Event Hubs producer mode:
+
+```powershell
+$env:EVENTHUB_CONNECTION_STR = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+$env:EVENTHUB_NAME = "smart-meter-events"
+python streaming/producer/smart_meter_producer.py --mode eventhub --events-per-second 5 --duration-seconds 60
+```
+
+Run Event Hubs to bronze mode:
+
+```powershell
+$env:EVENTHUB_KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
+$env:EVENTHUB_CONNECTION_STR = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+python streaming/consumer/stream_eventhub_to_bronze.py --mode eventhub --continuous
+```
+
+Optional SQL Server load:
+
+```powershell
+python streaming/consumer/load_streaming_gold_to_sql_server.py
+```
+
+Checkpoints are stored under:
+
+```text
+checkpoints/eventhub_to_bronze/
+checkpoints/bronze_to_silver_gold/
+```
+
 ## Expected Phase 2 Outputs
 
 Bronze:
@@ -260,6 +337,17 @@ Gold:
 - `data_lake/gold/consumption_weather_features/`
 - `data_lake/gold/customer_usage_summary/`
 
+Streaming outputs:
+
+- `data_lake/bronze/streaming_events/`
+- `data_lake/bronze/streaming_events_landing/`
+- `data_lake/silver/clean_streaming_events/`
+- `data_lake/silver/rejected_streaming_events/`
+- `data_lake/gold/latest_meter_readings/`
+- `data_lake/gold/streaming_anomaly_events/`
+- `data_lake/gold/hourly_streaming_consumption/`
+- `data_lake/gold/streaming_pipeline_metrics/`
+
 ## Tests
 
 Run the basic unit tests:
@@ -284,8 +372,6 @@ The reset script keeps the `EnergyWarehouse` database itself.
 
 Planned later phases:
 
-- Streaming-style smart-meter ingestion.
-- Local Azure Event Hubs Emulator integration.
 - FastAPI access patterns.
 - Power BI dashboarding.
 - Automated checks and CI/CD.

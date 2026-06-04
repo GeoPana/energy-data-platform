@@ -64,6 +64,10 @@ data_lake/gold/**
 !data_lake/gold/
 !data_lake/gold/**/
 !data_lake/gold/**/.gitkeep
+checkpoints/**
+!checkpoints/
+!checkpoints/**/
+!checkpoints/**/.gitkeep
 *.parquet
 *.avro
 *.orc

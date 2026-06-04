@@ -3,7 +3,9 @@
 __pycache__
 *.pyc
 airflow/logs
+checkpoints
 data_lake/bronze/**/*.csv
+data_lake/bronze/**/*.jsonl
 data_lake/silver/**/*.parquet
 data_lake/gold/**/*.parquet
 data_lake/**/_SUCCESS

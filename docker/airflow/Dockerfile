@@ -27,4 +27,5 @@ USER airflow
 RUN pip install --no-cache-dir \
     "pyspark>=3.5,<4.0" \
     "PyYAML>=6.0,<7.0" \
-    "pyodbc>=5.0,<6.0"
+    "pyodbc>=5.0,<6.0" \
+    "azure-eventhub>=5.12,<6.0"
