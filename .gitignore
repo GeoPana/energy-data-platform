@@ -1,0 +1,74 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Python environments and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+.venv/
+venv/
+env/
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node and frontend tooling for later phases
+node_modules/
+dist/
+build/
+.next/
+.vite/
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# Local data and generated lakehouse artifacts
+data/
+lakehouse/
+bronze/
+silver/
+gold/
+*.parquet
+*.avro
+*.orc
+*.jsonl
+
+# Local database artifacts and backups
+*.bak
+*.trn
+*.mdf
+*.ldf
+*.sqlite
+*.sqlite3
+
+# Airflow local runtime files for later phases
+airflow/logs/
+airflow/*.db
+
+# Docker Compose local overrides
+docker-compose.override.yml
+compose.override.yml
