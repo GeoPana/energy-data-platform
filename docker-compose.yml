@@ -1,0 +1,91 @@
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: docker/airflow/Dockerfile
+  image: ${AIRFLOW_IMAGE_NAME:-energy-airflow:local}
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "${AIRFLOW__CORE__LOAD_EXAMPLES:-false}"
+    AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+    PROJECT_ROOT: "${PROJECT_ROOT:-/opt/airflow/project}"
+    ENERGY_AIRFLOW_CONFIG: "${ENERGY_AIRFLOW_CONFIG:-/opt/airflow/project/config/airflow_config.example.yaml}"
+    ENERGY_PLATFORM_CONFIG: "${ENERGY_PLATFORM_CONFIG:-/opt/airflow/project/config/local_config.example.yaml}"
+    ENERGY_PIPELINE_PYTHON: "${ENERGY_PIPELINE_PYTHON:-python}"
+    PYTHONPATH: "/opt/airflow:/opt/airflow/project"
+    SQLSERVER_HOST: "${SQLSERVER_HOST:-host.docker.internal}"
+    SQLSERVER_DATABASE: "${SQLSERVER_DATABASE:-EnergyWarehouse}"
+    SQLSERVER_DRIVER: "${SQLSERVER_DRIVER:-ODBC Driver 18 for SQL Server}"
+    SQLSERVER_TRUSTED_CONNECTION: "${SQLSERVER_TRUSTED_CONNECTION:-false}"
+    SQLSERVER_USERNAME: "${SQLSERVER_USERNAME:-}"
+    SQLSERVER_PASSWORD: "${SQLSERVER_PASSWORD:-}"
+    SQLSERVER_ENCRYPT: "${SQLSERVER_ENCRYPT:-true}"
+    SQLSERVER_TRUST_SERVER_CERTIFICATE: "${SQLSERVER_TRUST_SERVER_CERTIFICATE:-true}"
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/include:/opt/airflow/include
+    - ./airflow/logs:/opt/airflow/logs
+    - ./:/opt/airflow/project
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/logs
+        airflow db migrate
+        airflow users create \
+          --username "$${_AIRFLOW_WWW_USER_USERNAME:-airflow}" \
+          --password "$${_AIRFLOW_WWW_USER_PASSWORD:-airflow}" \
+          --firstname Portfolio \
+          --lastname User \
+          --role Admin \
+          --email airflow@example.com || true
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_WWW_USER_USERNAME: "${_AIRFLOW_WWW_USER_USERNAME:-airflow}"
+      _AIRFLOW_WWW_USER_PASSWORD: "${_AIRFLOW_WWW_USER_PASSWORD:-airflow}"
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: unless-stopped
+
+volumes:
+  airflow-postgres-db-volume:

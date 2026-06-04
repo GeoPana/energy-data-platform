@@ -1,0 +1,12 @@
+.git
+.pytest_cache
+__pycache__
+*.pyc
+airflow/logs
+data_lake/bronze/**/*.csv
+data_lake/silver/**/*.parquet
+data_lake/gold/**/*.parquet
+data_lake/**/_SUCCESS
+config/local_config.yaml
+config/airflow_config.yaml
+.env

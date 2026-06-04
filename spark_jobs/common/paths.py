@@ -205,4 +205,31 @@ def get_project_paths(config_path: str | Path | None = None) -> ProjectPaths:
 
 def get_sql_server_config(config_path: str | Path | None = None) -> dict[str, Any]:
     config = load_config(config_path)
-    return dict(config.get("sql_server", {}))
+    sql_config = dict(config.get("sql_server", {}))
+
+    if os.getenv("SQLSERVER_DRIVER"):
+        sql_config["driver"] = os.getenv("SQLSERVER_DRIVER")
+    if os.getenv("SQLSERVER_HOST"):
+        sql_config["server"] = os.getenv("SQLSERVER_HOST")
+    if os.getenv("SQLSERVER_DATABASE"):
+        sql_config["database"] = os.getenv("SQLSERVER_DATABASE")
+    if os.getenv("SQLSERVER_USERNAME"):
+        sql_config["username"] = os.getenv("SQLSERVER_USERNAME")
+    if os.getenv("SQLSERVER_PASSWORD"):
+        sql_config["password"] = os.getenv("SQLSERVER_PASSWORD")
+    if os.getenv("SQLSERVER_TRUSTED_CONNECTION") is not None:
+        sql_config["trusted_connection"] = os.getenv("SQLSERVER_TRUSTED_CONNECTION", "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+    if os.getenv("SQLSERVER_ENCRYPT") is not None:
+        sql_config["encrypt"] = os.getenv("SQLSERVER_ENCRYPT", "").lower() in {"1", "true", "yes"}
+    if os.getenv("SQLSERVER_TRUST_SERVER_CERTIFICATE") is not None:
+        sql_config["trust_server_certificate"] = os.getenv("SQLSERVER_TRUST_SERVER_CERTIFICATE", "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+
+    return sql_config

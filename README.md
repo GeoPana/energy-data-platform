@@ -3,6 +3,7 @@
 This repository is a portfolio Data Engineering project that models an Azure-style energy analytics platform using free local tools.
 
 The project is built in phases. Phase 1 created the SQL Server warehouse foundation. Phase 2 adds a local batch lakehouse pipeline that generates source-style data, transforms it through bronze, silver, and gold layers with PySpark, and loads curated outputs into SQL Server.
+Phase 3 orchestrates that batch pipeline with Apache Airflow.
 
 ## Current Scope
 
@@ -10,16 +11,17 @@ Implemented:
 
 - Phase 1 SQL Server warehouse foundation.
 - Phase 2 local batch lakehouse pipeline.
+- Phase 3 Apache Airflow batch orchestration.
 - Local data generation for metadata, energy consumption, and weather.
 - Bronze raw-style CSV landing folders.
 - Silver cleaned Parquet outputs and rejected records.
 - Gold curated Parquet outputs.
 - SQL Server loader for curated warehouse tables.
+- Airflow DAG, retries, task dependencies, SQL quality checks, and monitoring hooks.
 - Documentation and unit tests for core helper logic.
 
 Intentionally not implemented yet:
 
-- Airflow orchestration.
 - Streaming ingestion.
 - Azure Event Hubs Emulator.
 - FastAPI services.
@@ -36,6 +38,8 @@ Intentionally not implemented yet:
 | `data_lake/silver` | Databricks/Synapse silver cleaned tables |
 | `data_lake/gold` | Curated gold lakehouse tables |
 | PySpark local jobs | Databricks or Synapse Spark jobs |
+| Airflow DAG | Azure Data Factory pipeline |
+| Airflow task | Azure Data Factory activity |
 | Parquet files | Local stand-in for Delta Lake tables |
 | `monitoring` schema | Operational metadata and quality observability |
 
@@ -46,12 +50,16 @@ Intentionally not implemented yet:
 |-- README.md
 |-- .gitignore
 |-- environment.yml
+|-- docker-compose.yml
+|-- airflow
 |-- config
+|   |-- airflow_config.example.yaml
 |   `-- local_config.example.yaml
 |-- data_lake
 |   |-- bronze
 |   |-- silver
 |   `-- gold
+|-- docker
 |-- docs
 |-- ingestion
 |-- spark_jobs
@@ -166,6 +174,65 @@ python spark_jobs/load_gold_to_sql_server.py
 
 The SQL Server load expects the Phase 1 database and tables to already exist.
 
+## Phase 3: Airflow Orchestration
+
+Phase 3 stops running Phase 2 scripts manually and orchestrates them through Airflow.
+
+DAG:
+
+```text
+energy_batch_lakehouse_pipeline
+```
+
+Task flow:
+
+```text
+start_pipeline
+    -> check_project_structure
+    -> generate_metadata
+    -> generate_batch_energy_data
+    -> generate_weather_data
+    -> run_bronze_to_silver
+    -> run_silver_to_gold
+    -> load_gold_to_sql_server
+    -> run_data_quality_checks
+    -> write_pipeline_run_summary
+    -> end_pipeline
+```
+
+Start Airflow with Docker Compose:
+
+```powershell
+copy .env.example .env
+docker compose up airflow-init
+docker compose up airflow-webserver airflow-scheduler
+```
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+Default local credentials:
+
+- username: `airflow`
+- password: `airflow`
+
+Trigger from the UI or CLI:
+
+```powershell
+docker compose exec airflow-webserver airflow dags trigger energy_batch_lakehouse_pipeline
+```
+
+For Docker on Windows, SQL Server Developer running on the host usually requires:
+
+```text
+SQLSERVER_HOST=host.docker.internal
+```
+
+The DAG writes best-effort pipeline status to `monitoring.pipeline_run` and inserts SQL data-quality results into `monitoring.data_quality_check` when SQL Server is available.
+
 ## Expected Phase 2 Outputs
 
 Bronze:
@@ -217,7 +284,6 @@ The reset script keeps the `EnergyWarehouse` database itself.
 
 Planned later phases:
 
-- Airflow orchestration for the batch pipeline.
 - Streaming-style smart-meter ingestion.
 - Local Azure Event Hubs Emulator integration.
 - FastAPI access patterns.
