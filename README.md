@@ -5,6 +5,7 @@ This repository is a portfolio Data Engineering project that models an Azure-sty
 The project is built in phases. Phase 1 created the SQL Server warehouse foundation. Phase 2 adds a local batch lakehouse pipeline that generates source-style data, transforms it through bronze, silver, and gold layers with PySpark, and loads curated outputs into SQL Server.
 Phase 3 orchestrates that batch pipeline with Apache Airflow.
 Phase 4 adds an Event Hubs-style real-time streaming path with PySpark Structured Streaming.
+Phase 5 exposes curated warehouse data through SQL serving views, a FastAPI app, and Power BI Desktop guidance.
 
 ## Current Scope
 
@@ -14,6 +15,7 @@ Implemented:
 - Phase 2 local batch lakehouse pipeline.
 - Phase 3 Apache Airflow batch orchestration.
 - Phase 4 smart-meter streaming pipeline.
+- Phase 5 serving/API/BI consumption layer.
 - Local data generation for metadata, energy consumption, and weather.
 - Local smart-meter event generation.
 - Bronze raw-style CSV landing folders.
@@ -23,12 +25,11 @@ Implemented:
 - SQL Server loader for curated warehouse tables.
 - Airflow DAG, retries, task dependencies, SQL quality checks, and monitoring hooks.
 - Azure Event Hubs Emulator configuration with file-mode fallback.
+- SQL Server serving schema, FastAPI endpoints, Power BI Desktop dashboard specification, and data-product contracts.
 - Documentation and unit tests for core helper logic.
 
 Intentionally not implemented yet:
 
-- FastAPI services.
-- Power BI reports.
 - CI/CD pipelines.
 - Cloud resources.
 
@@ -45,6 +46,9 @@ Intentionally not implemented yet:
 | Airflow task | Azure Data Factory activity |
 | Event Hubs Emulator | Azure Event Hubs |
 | PySpark Structured Streaming | Azure Databricks Structured Streaming |
+| `serving` schema views | SQL data product contracts |
+| FastAPI local app | Azure App Service or Azure Functions |
+| Power BI Desktop | Power BI Desktop / Power BI semantic model |
 | Parquet files | Local stand-in for Delta Lake tables |
 | `monitoring` schema | Operational metadata and quality observability |
 
@@ -57,6 +61,7 @@ Intentionally not implemented yet:
 |-- environment.yml
 |-- docker-compose.yml
 |-- airflow
+|-- api
 |-- checkpoints
 |-- config
 |   |-- airflow_config.example.yaml
@@ -68,6 +73,7 @@ Intentionally not implemented yet:
 |-- docker
 |-- docs
 |-- ingestion
+|-- powerbi
 |-- spark_jobs
 |-- streaming
 |-- sql
@@ -310,6 +316,63 @@ checkpoints/eventhub_to_bronze/
 checkpoints/bronze_to_silver_gold/
 ```
 
+## Phase 5: Serving, API, And Power BI Layer
+
+Phase 5 exposes curated SQL Server warehouse data as consumer-facing data products:
+
+```text
+SQL Server warehouse tables
+    -> serving schema views
+    -> FastAPI endpoints
+    -> Power BI Desktop dashboard guidance
+```
+
+Create serving views:
+
+```powershell
+sqlcmd -S localhost -E -i sql\09_create_serving_schema_and_views.sql
+```
+
+Explore serving queries:
+
+```powershell
+sqlcmd -S localhost -E -i sql\10_serving_layer_queries.sql
+```
+
+Run the API:
+
+```powershell
+conda env update -f environment.yml --prune
+conda activate energy-data-platform
+
+uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Open API docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Example endpoints:
+
+- `GET /health`
+- `GET /regions`
+- `GET /regions/East%20London/daily-consumption`
+- `GET /meters/MTR-LON-001/latest-reading`
+- `GET /anomalies`
+- `GET /dashboard/kpis`
+- `GET /monitoring/pipeline-runs`
+- `GET /monitoring/data-quality`
+
+Power BI Desktop:
+
+```text
+Get Data -> SQL Server -> localhost -> EnergyWarehouse -> select serving views
+```
+
+Use Import mode for a simple local portfolio dashboard. See `powerbi/dashboard_spec.md` and `powerbi/measures.md`.
+
 ## Expected Phase 2 Outputs
 
 Bronze:
@@ -348,6 +411,19 @@ Streaming outputs:
 - `data_lake/gold/hourly_streaming_consumption/`
 - `data_lake/gold/streaming_pipeline_metrics/`
 
+Serving/API/BI outputs:
+
+- `serving.vw_daily_region_consumption`
+- `serving.vw_monthly_region_consumption`
+- `serving.vw_customer_usage_summary`
+- `serving.vw_meter_latest_reading`
+- `serving.vw_anomaly_events`
+- `serving.vw_data_quality_summary`
+- `serving.vw_pipeline_run_summary`
+- `serving.vw_dashboard_kpis`
+- FastAPI OpenAPI docs at `http://127.0.0.1:8000/docs`
+- Power BI screenshots under `powerbi/screenshots/`
+
 ## Tests
 
 Run the basic unit tests:
@@ -372,6 +448,4 @@ The reset script keeps the `EnergyWarehouse` database itself.
 
 Planned later phases:
 
-- FastAPI access patterns.
-- Power BI dashboarding.
 - Automated checks and CI/CD.

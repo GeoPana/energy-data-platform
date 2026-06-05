@@ -12,6 +12,8 @@ Run the SQL files in numeric order. The scripts use SQL Server / T-SQL syntax an
 | 6 | `06_data_quality_checks.sql` | Provides data-quality investigation queries for common warehouse issues. |
 | 7 | `07_analytics_queries.sql` | Provides analytics examples using joins, CTEs, aggregations, and window functions. |
 | 8 | `08_drop_all.sql` | Drops all Phase 1 tables and schemas in dependency order. |
+| 9 | `09_create_serving_schema_and_views.sql` | Creates Phase 5 consumer-facing serving views for APIs and BI. |
+| 10 | `10_serving_layer_queries.sql` | Provides practical query examples over serving views. |
 
 ## Recommended Execution
 
@@ -28,6 +30,13 @@ Run the quality and analytics scripts after the seed script:
 ```powershell
 sqlcmd -S localhost -E -i sql\06_data_quality_checks.sql
 sqlcmd -S localhost -E -i sql\07_analytics_queries.sql
+```
+
+Run the serving-layer scripts after the warehouse objects exist:
+
+```powershell
+sqlcmd -S localhost -E -i sql\09_create_serving_schema_and_views.sql
+sqlcmd -S localhost -E -i sql\10_serving_layer_queries.sql
 ```
 
 ## Notes
